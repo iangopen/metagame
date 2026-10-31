@@ -1,0 +1,23 @@
+logs
+*.log
+npm-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Secrets never belong in the repo
+.env
+.env.*
+
+# Claude Code per-machine settings (local paths, permission rules)
+.claude/settings.local.json
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.sw?
