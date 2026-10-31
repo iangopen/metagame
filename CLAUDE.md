@@ -91,12 +91,12 @@ As of 2026-10-31 (session 1). `npm run build` clean; `npm test` 78 tests in 11 f
 - **Mutation demos:** ties to the lowest index fails 4 tests; normalised-uniform sampler fails 19
   (uniformity, all 15 anchors, both coverage tests, draw count). Both reverted, suite green.
 - **CLI:** both documented commands run (100,000 rounds: 0.09 s two-player, 0.24 s four-player paired).
+- **CI:** GitHub Actions run 41241306399 on the session-1 docs commit: test and build jobs green.
 
 ## Open
 
 - Not yet built: search (session 2), other crowds and robustness (3), auction and the extracted game
   definition (5), equilibrium (6), worker, UI, report and share links (7-8).
-- CI exists but has only run when this file says so in `docs/history.md`.
 - CRN does not narrow comparisons of very different allocations (the CLI pair 0-22-1-77-0 vs
   15-0-41-44-0 at 4 players: ratio 1.06). Expected, not a bug; search compares nearby allocations.
 - The exact anchors share `scoreRound` with the evaluator, so they do not catch scoring bugs; the

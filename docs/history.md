@@ -19,6 +19,7 @@ the evaluate CLI, docs and CI.
 - Mutation 2, sampler switched to normalised independent uniforms: 19 tests failed (uniformity
   chi-square 153,633 vs 42.92, all 15 exact anchors, both coverage tests, the draw-count test).
 - Both reverted with `git checkout`; 78 of 78 tests pass.
+- Pushed to `iangopen/metagame`; CI run 41241306399 (test, build, CLI smoke run) passed in 14 s.
 
 ### Decisions made outside the prompt
 
