@@ -1,0 +1,37 @@
+name: CI
+
+# Every push and pull request runs the unit and stats tests and the build (strict type check of the
+# DOM-free engine, its tests, the app and the node scripts, then the production bundle). Modelled
+# on StrategyLab's workflow; no lint, E2E or Pages deploy yet.
+on:
+  push:
+  pull_request:
+
+# Least privilege: jobs only read the repository.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test
+
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # The CLI must keep working: a short seeded run of the documented example.
+      - run: npm run evaluate -- --players 2 --payout winlose --alloc 15-0-41-44-0 --rounds 10000 --seed 1
