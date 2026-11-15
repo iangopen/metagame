@@ -23,7 +23,10 @@ npm run build      # tsc -b over engine, engine tests, app and node configs, the
 npm test           # vitest: "unit" project, then "stats" (*.stats.test.ts, Monte Carlo-heavy)
 npm run dev        # placeholder page
 npm run evaluate -- --alloc 15-0-41-44-0 [--compare A] [--players 2] [--payout winlose|raw|rank:9,4,2,0]
-                   #   [--castles 1,2,3,4,5] [--soldiers 100] [--rounds 10000] [--seed 1]
+                   #   [--castles 1,2,3,4,5] [--soldiers 100] [--rounds 10000] [--seed 1] [--crowd SPEC]
+npm run search -- [--players 2] [--payout ...] [--castles ...] [--soldiers 100] [--crowd SPEC]
+                   #   [--budget quick|standard|thorough] [--robust uniform+even+levelk:1] [--include A] [--seed 1]
+                   # SPEC: uniform | even | proportional | fixed:A/B | levelk:1..3 | mix:uniform=0.5,levelk:1=0.5
 ```
 
 Windows/PowerShell is the primary machine, macOS the second. Every command must run in both: npm
@@ -41,9 +44,19 @@ scripts and tsx, no bash-only syntax. Never create files with `echo > file` in W
     splitting, `isOutrightFirst`, `parsePayout` / `formatPayout`.
   - `games/blotto/blotto.ts`: params, validation, `scoreRound`, `randomAllocation` (stars and bars),
     `neighbour`, `encodeAllocation` / `decodeAllocation`, `enumerateAllocations`, `allocationCount`.
-  - `eval/evaluate.ts`: `evaluate`, `comparePaired` against the uniform crowd (Blotto-specific).
+  - `core/game.ts`: `Game<C>`, what evaluation, search and crowds need from a game.
+    `games/blotto/blottoGame.ts` adapts Blotto; `games/guess/guess.ts` is Guess-2/3 (level-k anchor).
+  - `crowds/`: `crowd.ts` (uniform, point, heuristic, fixed list, mixture), `levelK.ts`, `spec.ts`
+    (`CrowdSpec`, text syntax, `buildCrowd`).
+  - `eval/play.ts`: any game against any crowd under CRN. `eval/evaluate.ts`: Blotto `evaluate`,
+    `comparePaired`, now wrapping `play`.
+  - `search/search.ts`: best found search with held-out re-evaluation. `robust/robustness.ts`:
+    strategy-by-crowd matrix with per-cell intervals and paired regret.
+  - `testing/exact.ts`: brute-force exact values, tests only. `index.ts`: the public surface the UI
+    should import.
   - `isolation.test.ts`: no Math.random, React or DOM in engine sources.
-- `scripts/evaluate.ts`: the CLI. `src/App.tsx`, `src/main.tsx`: placeholder page.
+- `scripts/evaluate.ts`, `scripts/search.ts`: the CLIs; `scripts/cli.ts`: shared argument parsing and
+  formatting. `src/App.tsx`, `src/main.tsx`: placeholder page.
 - `ARCHITECTURE.md`: the full plan. `.github/workflows/ci.yml`: tests, build, a CLI smoke run.
 
 ## Standing rules
@@ -73,7 +86,11 @@ These are not negotiable. A change that breaks one is wrong even if every test p
 
 ## Real and verified
 
-As of 2026-10-31 (session 1). `npm run build` clean; `npm test` 78 tests in 11 files, all passing.
+As of 2026-11-15 (session 2, branch `search-and-crowds`, not merged). `npm run build` clean end to
+end; `npm test` 177 tests in 19 files, all passing (about 2 min, the stats project dominates). CI run
+43710590416 green (test, build, evaluate and search smoke runs).
+
+Engine core, Blotto and evaluation (session 1):
 
 - **DOM guard:** a `document.title` reference in `src/engine/core` fails `npm run build` with TS2584.
 - **Copied code:** rng and interval files are byte-identical to StrategyLab after the 3-line header;
@@ -91,18 +108,11 @@ As of 2026-10-31 (session 1). `npm run build` clean; `npm test` 78 tests in 11 f
 - **Mutation demos:** ties to the lowest index fails 4 tests; normalised-uniform sampler fails 19
   (uniformity, all 15 anchors, both coverage tests, draw count). Both reverted, suite green.
 - **CLI:** both documented commands run (100,000 rounds: 0.09 s two-player, 0.24 s four-player paired).
-- **CI:** GitHub Actions run 41241306399 on the session-1 docs commit: test and build jobs green.
+- **CI (session 1):** GitHub Actions run 41241306399: test and build jobs green.
 
-## Session 2 (2026-11-15), branch `search-and-crowds`: real and verified
+Search, crowds and robustness (session 2):
 
-`npm test`: 177 tests in 19 files, all passing (about 105 s, the stats project dominates). The
-session-1 evaluate CLI output is byte-identical to main apart from the runtime line. Not yet
-re-run after the docs commit: `npm run build` end to end (`tsc -b` was clean), and CI on this branch.
-
-- **Layout added:** `core/game.ts` (`Game<C>`), `games/blotto/blottoGame.ts`, `games/guess/guess.ts`,
-  `crowds/` (`crowd.ts`, `levelK.ts`, `spec.ts`), `eval/play.ts` (any game, any crowd; `evaluate.ts`
-  now wraps it), `search/search.ts`, `robust/robustness.ts`, `testing/exact.ts` (brute force for
-  tests), `index.ts` (the public surface the UI should import), `scripts/search.ts`, `scripts/cli.ts`.
+- **Regression:** the session-1 evaluate CLI output is identical to main apart from the runtime line.
 - **Algorithms:** search is sample-average approximation under CRN: random pool (or every choice
   when the game has at most 2,000), successive halving, hill climb accepting equal-or-better moves,
   final ranking of the best 16 choices met, winner re-evaluated on `deriveSeed(seed, "holdout", 0)`.
@@ -125,15 +135,13 @@ re-run after the docs commit: `npm run build` end to end (`tsc -b` was clean), a
 
 ## Open
 
-- Session 2 wrap-up left undone (usage limit): `docs/history.md` entry, a full `npm run build`, CI
-  on the branch, and merging this section into "Real and verified" above.
+- `search-and-crowds` is not merged to main.
+- UI worker: wrap `search`, `buildCrowd` and `robustness` in a Web Worker with progress and cancel
+  (none exists; `search` is one blocking call). Then the parameter schema for forms (session 5).
 - The top is flat: over seeds 1..10 the best found 2p allocation differs every time (0-0-x-y-49
   family) while held-out payouts stay within 0.866 to 0.874. Report the payout, not the allocation,
   as the stable result.
 - Levels above 1 are point masses, so under win/lose they are arbitrary among winning responses.
-- UI next: a worker wrapping `search`, `buildCrowd`, `robustness` with progress and cancel (none
-  exists; `search` is one blocking call), and the parameter schema for forms (session 5).
-
 - Not yet built: auction and the parameter schema (5), equilibrium (6), worker, UI, report and share
   links (7-8).
 - CRN does not narrow comparisons of very different allocations (the CLI pair 0-22-1-77-0 vs
