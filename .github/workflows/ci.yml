@@ -33,5 +33,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      # The CLI must keep working: a short seeded run of the documented example.
+      # The CLIs must keep working: short seeded runs of the documented examples.
       - run: npm run evaluate -- --players 2 --payout winlose --alloc 15-0-41-44-0 --rounds 10000 --seed 1
+      - run: npm run search -- --crowd mix:uniform=0.5,proportional=0.3,levelk:1=0.2 --budget quick --robust uniform+even --seed 1

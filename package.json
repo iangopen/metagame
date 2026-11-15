@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
-    "evaluate": "tsx scripts/evaluate.ts"
+    "evaluate": "tsx scripts/evaluate.ts",
+    "search": "tsx scripts/search.ts"
   },
   "dependencies": {
     "react": "^19.2.8",
