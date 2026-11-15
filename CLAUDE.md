@@ -93,10 +93,49 @@ As of 2026-10-31 (session 1). `npm run build` clean; `npm test` 78 tests in 11 f
 - **CLI:** both documented commands run (100,000 rounds: 0.09 s two-player, 0.24 s four-player paired).
 - **CI:** GitHub Actions run 41241306399 on the session-1 docs commit: test and build jobs green.
 
+## Session 2 (2026-11-15), branch `search-and-crowds`: real and verified
+
+`npm test`: 177 tests in 19 files, all passing (about 105 s, the stats project dominates). The
+session-1 evaluate CLI output is byte-identical to main apart from the runtime line. Not yet
+re-run after the docs commit: `npm run build` end to end (`tsc -b` was clean), and CI on this branch.
+
+- **Layout added:** `core/game.ts` (`Game<C>`), `games/blotto/blottoGame.ts`, `games/guess/guess.ts`,
+  `crowds/` (`crowd.ts`, `levelK.ts`, `spec.ts`), `eval/play.ts` (any game, any crowd; `evaluate.ts`
+  now wraps it), `search/search.ts`, `robust/robustness.ts`, `testing/exact.ts` (brute force for
+  tests), `index.ts` (the public surface the UI should import), `scripts/search.ts`, `scripts/cli.ts`.
+- **Algorithms:** search is sample-average approximation under CRN: random pool (or every choice
+  when the game has at most 2,000), successive halving, hill climb accepting equal-or-better moves,
+  final ranking of the best 16 choices met, winner re-evaluated on `deriveSeed(seed, "holdout", 0)`.
+  Crowds are i.i.d. per opponent seat. Level k is a point mass on the best found response to k-1.
+  Details and reasons: ARCHITECTURE §5, §7, §8.
+- **Search vs brute force:** point crowds 108 of 108 searches equal the brute-force maximum (6 games,
+  3 crowds, 2 modes, 3 seeds). Uniform crowd: 82 of 82 found the brute-force argmax of the sample
+  objective; 114 of 120 found an exact best, the 6 misses within 4 SE (worst exact regret 0.0033).
+- **Holdout:** over 100 seeds the search estimate overstates by 0.0239 (z 10.3); held-out -0.0005 (z -0.18).
+- **Crowds:** sampler chi-squares pass (mixture 14.24 vs 63.40; swapped weights 20,434). 30 cells
+  against exact enumeration, max |z| 1.35, 24 of 24 intervals contain the exact value. At full size,
+  SD across 30 seeds 0.00160 vs reported SE 0.00172.
+- **Level-k:** Guess-2/3 (3p, raw) levels 2 and 3 equal round(4y/7) and brute force; iterated from
+  100: 57, 33, 19, 11, 6, 3, 2, 1 (1 and 0 are both fixed points on the integer grid).
+- **Mutation demos (all reverted):** holdout on the search seed fails 2 tests; strict-improvement
+  climb fails 1; inverted ranking fails 22; unnormalised weights 8; ignored weights 8; level-k
+  answering the base 4; robustness best as the minimum 3.
+- **Runtime** (5 castles, 100 soldiers): search quick 0.30 s, standard 1.67 s (2p) / 2.35 s (4p),
+  thorough 9 to 11 s; level-k 1..3 1.66 s; robustness 6 x 5 at 20,000 rounds 0.76 s.
+
 ## Open
 
-- Not yet built: search (session 2), other crowds and robustness (3), auction and the extracted game
-  definition (5), equilibrium (6), worker, UI, report and share links (7-8).
+- Session 2 wrap-up left undone (usage limit): `docs/history.md` entry, a full `npm run build`, CI
+  on the branch, and merging this section into "Real and verified" above.
+- The top is flat: over seeds 1..10 the best found 2p allocation differs every time (0-0-x-y-49
+  family) while held-out payouts stay within 0.866 to 0.874. Report the payout, not the allocation,
+  as the stable result.
+- Levels above 1 are point masses, so under win/lose they are arbitrary among winning responses.
+- UI next: a worker wrapping `search`, `buildCrowd`, `robustness` with progress and cancel (none
+  exists; `search` is one blocking call), and the parameter schema for forms (session 5).
+
+- Not yet built: auction and the parameter schema (5), equilibrium (6), worker, UI, report and share
+  links (7-8).
 - CRN does not narrow comparisons of very different allocations (the CLI pair 0-22-1-77-0 vs
   15-0-41-44-0 at 4 players: ratio 1.06). Expected, not a bug; search compares nearby allocations.
 - The exact anchors share `scoreRound` with the evaluator, so they do not catch scoring bugs; the
